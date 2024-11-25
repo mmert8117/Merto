@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vampir Köylü - Tüm Özellikler</title>
+    <title>Vampir Köylü - Tam İşlevsellik</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -92,8 +92,7 @@
     </div>
     <div class="timer" id="timer">Süre: --</div>
     <button onclick="togglePhase()">Fazı Değiştir</button>
-
-    <script>
+        <script>
         const roles = ["Vampir", "Doktor", "Kâhin", "Masum Köylü", "Avcı"];
         const players = [
             { name: "Player1", role: null, status: "alive", hasActed: false },
@@ -149,8 +148,7 @@
         function renderActions() {
             const actionSection = document.getElementById("actionSection");
             actionSection.innerHTML = "";
-
-            const currentPlayer = players[currentPlayerIndex];
+                        const currentPlayer = players[currentPlayerIndex];
             if (currentPlayer.status === "dead" || currentPlayer.hasActed) {
                 nextPlayer();
                 return;
@@ -161,36 +159,100 @@
             message.textContent = `${currentPlayer.name} (${role}): Aksiyon yapıyor.`;
             actionSection.appendChild(message);
 
-            if (phase === "Gece" && role === "Vampir") {
-                const select = document.createElement("select");
-                select.id = "targetPlayer";
-                select.innerHTML = `
-                    <option value="">Hedef Seç</option>
-                    ${players
-                        .filter(player => player.status === "alive" && player !== currentPlayer)
-                        .map(player => `<option value="${player.name}">${player.name}</option>`).join('')}
-                `;
-                actionSection.appendChild(select);
-
-                const button = document.createElement("button");
-                button.textContent = "Saldır";
-                button.onclick = () => {
-                    const targetName = document.getElementById("targetPlayer").value;
-                    if (targetName) {
-                        const target = players.find(player => player.name === targetName);
-                        target.status = "dead";
-                        currentPlayer.hasActed = true;
-                        renderPlayerCards();
-                        nextPlayer();
-                    }
-                };
-                actionSection.appendChild(button);
+            if (phase === "Gece") {
+                if (role === "Vampir") {
+                    renderVampirActions(currentPlayer);
+                } else if (role === "Doktor") {
+                    renderDoktorActions(currentPlayer);
+                } else if (role === "Kâhin") {
+                    renderKahinActions(currentPlayer);
+                } else {
+                    nextPlayer();
+                }
             } else {
                 nextPlayer();
             }
         }
 
-        function nextPlayer() {
+        function renderVampirActions(currentPlayer) {
+            const actionSection = document.getElementById("actionSection");
+            const select = document.createElement("select");
+            select.id = "targetPlayer";
+            select.innerHTML = `
+                <option value="">Hedef Seç</option>
+                ${players
+                    .filter(player => player.status === "alive" && player !== currentPlayer)
+                    .map(player => `<option value="${player.name}">${player.name}</option>`).join('')}
+            `;
+            actionSection.appendChild(select);
+
+            const button = document.createElement("button");
+            button.textContent = "Saldır";
+            button.onclick = () => {
+                const targetName = document.getElementById("targetPlayer").value;
+                if (targetName) {
+                    const target = players.find(player => player.name === targetName);
+                    target.status = "dead";
+                    currentPlayer.hasActed = true;
+                    renderPlayerCards();
+                    nextPlayer();
+                }
+            };
+            actionSection.appendChild(button);
+        }
+
+        function renderDoktorActions(currentPlayer) {
+            const actionSection = document.getElementById("actionSection");
+            const select = document.createElement("select");
+            select.id = "healPlayer";
+            select.innerHTML = `
+                <option value="">Korunacak Oyuncu Seç</option>
+                ${players
+                    .filter(player => player.status === "alive")
+                    .map(player => `<option value="${player.name}">${player.name}</option>`).join('')}
+            `;
+            actionSection.appendChild(select);
+
+            const button = document.createElement("button");
+            button.textContent = "Koruma";
+            button.onclick = () => {
+                const healName = document.getElementById("healPlayer").value;
+                if (healName) {
+                    currentPlayer.hasActed = true;
+                    renderPlayerCards();
+                    nextPlayer();
+                }
+            };
+            actionSection.appendChild(button);
+        }
+
+        function renderKahinActions(currentPlayer) {
+            const actionSection = document.getElementById("actionSection");
+            const select = document.createElement("select");
+            select.id = "inspectPlayer";
+            select.innerHTML = `
+                <option value="">Oyuncuyu Seç</option>
+                ${players
+                    .filter(player => player.status === "alive")
+                    .map(player => `<option value="${player.name}">${player.name}</option>`).join('')}
+            `;
+            actionSection.appendChild(select);
+
+            const button = document.createElement("button");
+            button.textContent = "Tahmin Et";
+            button.onclick = () => {
+                const inspectName = document.getElementById("inspectPlayer").value;
+                if (inspectName) {
+                    const inspectedPlayer = players.find(player => player.name === inspectName);
+                    alert(`${inspectName} Vampir mi? ${inspectedPlayer.role === "Vampir" ? "Evet" : "Hayır"}`);
+                    currentPlayer.hasActed = true;
+                    renderPlayerCards();
+                    nextPlayer();
+                }
+            };
+            actionSection.appendChild(button);
+        }
+                    function nextPlayer() {
             currentPlayerIndex++;
             if (currentPlayerIndex >= players.length) {
                 togglePhase();
