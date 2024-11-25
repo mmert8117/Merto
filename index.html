@@ -85,10 +85,10 @@
 <body class="night">
     <h1>Vampir Köylü</h1>
     <div class="container" id="playerCards">
-        <!-- Player cards will be dynamically generated here -->
+        <!-- Oyuncu kartları buraya render edilecek -->
     </div>
     <div class="action-section" id="actionSection">
-        <!-- Player actions will appear here -->
+        <!-- Aksiyonlar buraya gösterilecek -->
     </div>
     <div class="timer" id="timer">Süre: --</div>
     <button onclick="togglePhase()">Fazı Değiştir</button>
@@ -106,15 +106,17 @@
         let timer;
         let timeLeft;
 
+        // Roller rastgele atanır
         function assignRoles() {
             const shuffledRoles = [...roles];
             shuffledRoles.sort(() => Math.random() - 0.5);
             players.forEach((player, index) => {
                 player.role = shuffledRoles[index % roles.length];
             });
-            console.log("Atanan Roller:", players); // Debugging for roles
+            console.log("Atanan Roller:", players);
         }
 
+        // Oyuncu kartlarını render et
         function renderPlayerCards() {
             const playerCards = document.getElementById("playerCards");
             playerCards.innerHTML = "";
@@ -130,6 +132,7 @@
             });
         }
 
+        // Zamanlayıcıyı başlat
         function startTimer(duration, callback) {
             clearInterval(timer);
             timeLeft = duration;
@@ -145,6 +148,7 @@
             }, 1000);
         }
 
+        // Aksiyonları render et
         function renderActions() {
             const actionSection = document.getElementById("actionSection");
             actionSection.innerHTML = "";
@@ -174,6 +178,7 @@
             }
         }
 
+        // Vampir aksiyonu
         function renderVampirActions(currentPlayer) {
             const actionSection = document.getElementById("actionSection");
             const select = document.createElement("select");
@@ -201,6 +206,7 @@
             actionSection.appendChild(button);
         }
 
+        // Doktor aksiyonu
         function renderDoktorActions(currentPlayer) {
             const actionSection = document.getElementById("actionSection");
             const select = document.createElement("select");
@@ -226,6 +232,7 @@
             actionSection.appendChild(button);
         }
 
+        // Kâhin aksiyonu
         function renderKahinActions(currentPlayer) {
             const actionSection = document.getElementById("actionSection");
             const select = document.createElement("select");
@@ -255,6 +262,7 @@
                     function nextPlayer() {
             currentPlayerIndex++;
             if (currentPlayerIndex >= players.length) {
+                // Tüm oyuncular sırasını tamamladı, fazı değiştir
                 togglePhase();
                 return;
             }
@@ -264,13 +272,14 @@
         function togglePhase() {
             phase = phase === "Gece" ? "Gündüz" : "Gece";
             document.body.className = phase === "Gece" ? "night" : "day";
-            players.forEach(player => (player.hasActed = false));
-            currentPlayerIndex = 0;
-            const duration = phase === "Gece" ? 15 : 60;
-            startTimer(duration, togglePhase);
-            renderActions();
+            players.forEach(player => (player.hasActed = false)); // Aksiyon haklarını sıfırla
+            currentPlayerIndex = 0; // İlk oyuncuya dön
+            const duration = phase === "Gece" ? 15 : 60; // Faz süresini ayarla
+            startTimer(duration, togglePhase); // Faz için zamanlayıcıyı başlat
+            renderActions(); // Yeni faza uygun aksiyonları render et
         }
 
+        // Oyun başlangıcı
         assignRoles();
         renderPlayerCards();
         togglePhase();
