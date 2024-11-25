@@ -1,0 +1,97 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vampir Köylü - Fonksiyonel</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1e1e1e;
+            color: white;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+            padding: 20px;
+            background-color: #2e2e2e;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.7);
+        }
+        h1, h2 {
+            color: orange;
+            margin: 10px 0;
+        }
+        select, button {
+            background-color: orange;
+            color: white;
+            border: none;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #ff9800;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Vampir Köylü</h1>
+        <h2 id="phase">Gece Aksiyonu</h2>
+        <label for="vampir">Vampir Hedefi:</label>
+        <select id="vampir">
+            <option value="Player2">Player2</option>
+            <option value="Player3">Player3</option>
+            <option value="Player4">Player4</option>
+        </select>
+        <label for="doktor">Doktor Koruma:</label>
+        <select id="doktor">
+            <option value="Player1">Player1</option>
+            <option value="Player3">Player3</option>
+            <option value="Player4">Player4</option>
+        </select>
+        <button onclick="processNightActions()">Geceyi Tamamla</button>
+        <h2>Gündüz Linç</h2>
+        <button onclick="lynch('Player1')">Player1</button>
+        <button onclick="lynch('Player2')">Player2</button>
+        <button onclick="lynch('Player3')">Player3</button>
+        <button onclick="lynch('Player4')">Player4</button>
+        <p id="resultMessage"></p>
+    </div>
+
+    <script>
+        // Night action processing
+        function processNightActions() {
+            const vampirTarget = document.getElementById("vampir").value;
+            const doktorTarget = document.getElementById("doktor").value;
+            let message = "";
+
+            if (vampirTarget === doktorTarget) {
+                message = `Doktor ${doktorTarget}'ı korudu! Kimse ölmedi.`;
+            } else {
+                message = `Vampir ${vampirTarget}'ı öldürdü!`;
+            }
+
+            document.getElementById("resultMessage").textContent = message;
+        }
+
+        // Day lynch processing
+        function lynch(player) {
+            const message = `${player} linç edildi!`;
+            document.getElementById("resultMessage").textContent = message;
+        }
+    </script>
+</body>
+</html>
