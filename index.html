@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vampir Köylü - Multiplayer ve Kart Güncellemesi</title>
+    <title>Vampir Köylü - Düzeltmelerle Birlikte</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -106,6 +106,7 @@
             players.forEach((player, index) => {
                 player.role = shuffledRoles[index % roles.length];
             });
+            console.log("Atanan Roller:", players); // Debugging for roles
         }
 
         function renderPlayerCards() {
@@ -134,6 +135,9 @@
             }
 
             const role = currentPlayer.role;
+            const message = document.createElement("p");
+            message.textContent = `${currentPlayer.name} (${role}): Aksiyon yapıyor.`;
+            actionSection.appendChild(message);
 
             if (phase === "Gece" && role === "Vampir") {
                 const select = document.createElement("select");
@@ -159,9 +163,6 @@
                 };
                 actionSection.appendChild(button);
             } else {
-                const message = document.createElement("p");
-                message.textContent = `${currentPlayer.name} (${role}): Aksiyon bekleniyor...`;
-                actionSection.appendChild(message);
                 nextPlayer();
             }
         }
