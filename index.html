@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vampir Köylü - Fonksiyonel</title>
+    <title>Vampir Köylü - Gelişmiş</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -43,54 +43,99 @@
         button:hover {
             background-color: #ff9800;
         }
+        .results {
+            color: #00ff00;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Vampir Köylü</h1>
-        <h2 id="phase">Gece Aksiyonu</h2>
-        <label for="vampir">Vampir Hedefi:</label>
-        <select id="vampir">
-            <option value="Player2">Player2</option>
-            <option value="Player3">Player3</option>
-            <option value="Player4">Player4</option>
-        </select>
-        <label for="doktor">Doktor Koruma:</label>
-        <select id="doktor">
-            <option value="Player1">Player1</option>
-            <option value="Player3">Player3</option>
-            <option value="Player4">Player4</option>
-        </select>
-        <button onclick="processNightActions()">Geceyi Tamamla</button>
-        <h2>Gündüz Linç</h2>
-        <button onclick="lynch('Player1')">Player1</button>
-        <button onclick="lynch('Player2')">Player2</button>
-        <button onclick="lynch('Player3')">Player3</button>
-        <button onclick="lynch('Player4')">Player4</button>
-        <p id="resultMessage"></p>
+        <h2 id="phase">Gece</h2>
+        <div id="actionSection">
+            <!-- Actions will appear here -->
+        </div>
+        <p id="message" class="results"></p>
+        <button id="nextPhaseButton" onclick="nextPhase()">Sonraki Aşama</button>
     </div>
 
     <script>
-        // Night action processing
-        function processNightActions() {
-            const vampirTarget = document.getElementById("vampir").value;
-            const doktorTarget = document.getElementById("doktor").value;
-            let message = "";
+        const players = {
+            Player1: { role: "Vampir", status: "alive" },
+            Player2: { role: "Doktor", status: "alive" },
+            Player3: { role: "Köylü", status: "alive" },
+            Player4: { role: "Köylü", status: "alive" }
+        };
 
-            if (vampirTarget === doktorTarget) {
-                message = `Doktor ${doktorTarget}'ı korudu! Kimse ölmedi.`;
-            } else {
-                message = `Vampir ${vampirTarget}'ı öldürdü!`;
+        let phase = "Gece";
+
+        function renderActions() {
+            const actionSection = document.getElementById("actionSection");
+            actionSection.innerHTML = "";
+
+            if (phase === "Gece") {
+                for (const [player, data] of Object.entries(players)) {
+                    if (data.status === "alive" && data.role === "Vampir") {
+                        const select = document.createElement("select");
+                        select.id = "vampirTarget";
+                        select.innerHTML = `
+                            <option value="">Hedef Seç</option>
+                            ${Object.keys(players)
+                                .filter(p => p !== player && players[p].status === "alive")
+                                .map(p => `<option value="${p}">${p}</option>`).join('')}
+                        `;
+                        actionSection.appendChild(select);
+                    }
+                    if (data.status === "alive" && data.role === "Doktor") {
+                        const select = document.createElement("select");
+                        select.id = "doktorTarget";
+                        select.innerHTML = `
+                            <option value="">Koruma Seç</option>
+                            ${Object.keys(players)
+                                .filter(p => p !== player && players[p].status === "alive")
+                                .map(p => `<option value="${p}">${p}</option>`).join('')}
+                        `;
+                        actionSection.appendChild(select);
+                    }
+                }
+                document.getElementById("message").textContent = "Gece: Aksiyonlarınızı seçin ve 'Sonraki Aşama'ya tıklayın.";
+            } else if (phase === "Gündüz") {
+                for (const [player, data] of Object.entries(players)) {
+                    if (data.status === "alive") {
+                        const button = document.createElement("button");
+                        button.textContent = player;
+                        button.onclick = () => {
+                            document.getElementById("message").textContent = `${player} linç edildi!`;
+                            players[player].status = "dead";
+                            document.getElementById("nextPhaseButton").style.display = "block";
+                        };
+                        actionSection.appendChild(button);
+                    }
+                }
+                document.getElementById("message").textContent = "Gündüz: Birini linç etmek için tıklayın.";
             }
-
-            document.getElementById("resultMessage").textContent = message;
         }
 
-        // Day lynch processing
-        function lynch(player) {
-            const message = `${player} linç edildi!`;
-            document.getElementById("resultMessage").textContent = message;
+        function nextPhase() {
+            if (phase === "Gece") {
+                const vampirTarget = document.getElementById("vampirTarget").value;
+                const doktorTarget = document.getElementById("doktorTarget").value;
+                if (vampirTarget === doktorTarget) {
+                    document.getElementById("message").textContent = `Doktor ${doktorTarget}'ı korudu! Kimse ölmedi.`;
+                } else if (vampirTarget) {
+                    document.getElementById("message").textContent = `Vampir ${vampirTarget}'ı öldürdü!`;
+                    players[vampirTarget].status = "dead";
+                }
+                phase = "Gündüz";
+                document.getElementById("phase").textContent = "Gündüz";
+            } else {
+                phase = "Gece";
+                document.getElementById("phase").textContent = "Gece";
+            }
+            renderActions();
         }
+
+        renderActions();
     </script>
 </body>
 </html>
