@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vampir Köylü - Tüm Özellikler</title>
+    <title>Vampir Köylü - Multiplayer ve Kart Güncellemesi</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -31,23 +31,23 @@
             padding: 20px;
             display: flex;
             flex-wrap: wrap;
-            gap: 20px;
+            gap: 10px;
             justify-content: center;
         }
         .player-card {
-            width: 120px;
-            height: 180px;
+            width: 100px;
+            height: 150px;
             border-radius: 10px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
             transition: transform 0.3s, box-shadow 0.3s;
         }
         .player-card:hover {
             transform: scale(1.1);
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
         }
         .player-card.alive {
             background-color: #4caf50;
@@ -73,43 +73,18 @@
         button:hover {
             background-color: #ff9800;
         }
-        .winner-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.9);
-            color: orange;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 2em;
-            text-align: center;
-            z-index: 1000;
-            display: none;
-        }
-        .transition-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: black;
-            opacity: 0;
-            z-index: 999;
-            display: none;
-            transition: opacity 1s;
+        .action-section {
+            margin-top: 20px;
         }
     </style>
 </head>
 <body class="night">
-    <div class="winner-screen" id="winnerScreen"></div>
-    <div class="transition-screen" id="transitionScreen"></div>
-
     <h1>Vampir Köylü</h1>
     <div class="container" id="playerCards">
         <!-- Player cards will be dynamically generated here -->
+    </div>
+    <div class="action-section" id="actionSection">
+        <!-- Player actions will appear here -->
     </div>
     <button onclick="togglePhase()">Fazı Değiştir</button>
 
@@ -122,6 +97,7 @@
             { name: "Player4", role: null, status: "alive" },
             { name: "Player5", role: null, status: "alive" }
         ];
+        let currentPlayerIndex = 0;
         let phase = "Gece";
 
         function assignRoles() {
@@ -147,47 +123,65 @@
             });
         }
 
-        function togglePhase() {
-            showTransition();
-            setTimeout(() => {
-                phase = phase === "Gece" ? "Gündüz" : "Gece";
-                document.body.className = phase === "Gece" ? "night" : "day";
-                checkWinCondition();
-            }, 1000);
-        }
+        function renderActions() {
+            const actionSection = document.getElementById("actionSection");
+            actionSection.innerHTML = "";
 
-        function showTransition() {
-            const transitionScreen = document.getElementById("transitionScreen");
-            transitionScreen.style.display = "block";
-            transitionScreen.style.opacity = 1;
-            setTimeout(() => {
-                transitionScreen.style.opacity = 0;
-                setTimeout(() => {
-                    transitionScreen.style.display = "none";
-                }, 1000);
-            }, 1000);
-        }
+            const currentPlayer = players[currentPlayerIndex];
+            if (currentPlayer.status === "dead") {
+                nextPlayer();
+                return;
+            }
 
-        function checkWinCondition() {
-            const alivePlayers = players.filter(player => player.status === "alive");
-            const vampires = alivePlayers.filter(player => player.role === "Vampir").length;
-            const villagers = alivePlayers.filter(player => player.role !== "Vampir").length;
+            const role = currentPlayer.role;
 
-            if (vampires === 0) {
-                showWinner("Köylüler kazandı!");
-            } else if (villagers === 0) {
-                showWinner("Vampirler kazandı!");
+            if (phase === "Gece" && role === "Vampir") {
+                const select = document.createElement("select");
+                select.id = "targetPlayer";
+                select.innerHTML = `
+                    <option value="">Hedef Seç</option>
+                    ${players
+                        .filter(player => player.status === "alive" && player !== currentPlayer)
+                        .map(player => `<option value="${player.name}">${player.name}</option>`).join('')}
+                `;
+                actionSection.appendChild(select);
+
+                const button = document.createElement("button");
+                button.textContent = "Saldır";
+                button.onclick = () => {
+                    const targetName = document.getElementById("targetPlayer").value;
+                    if (targetName) {
+                        const target = players.find(player => player.name === targetName);
+                        target.status = "dead";
+                        renderPlayerCards();
+                        nextPlayer();
+                    }
+                };
+                actionSection.appendChild(button);
+            } else {
+                const message = document.createElement("p");
+                message.textContent = `${currentPlayer.name} (${role}): Aksiyon bekleniyor...`;
+                actionSection.appendChild(message);
+                nextPlayer();
             }
         }
 
-        function showWinner(message) {
-            const winnerScreen = document.getElementById("winnerScreen");
-            winnerScreen.textContent = message;
-            winnerScreen.style.display = "flex";
+        function nextPlayer() {
+            currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+            if (currentPlayerIndex === 0) togglePhase();
+            else renderActions();
+        }
+
+        function togglePhase() {
+            phase = phase === "Gece" ? "Gündüz" : "Gece";
+            document.body.className = phase === "Gece" ? "night" : "day";
+            currentPlayerIndex = 0;
+            renderActions();
         }
 
         assignRoles();
         renderPlayerCards();
+        renderActions();
     </script>
 </body>
 </html>
