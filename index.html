@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vampir Köylü - Bilgi Paneli</title>
+    <title>Vampir Köylü - Yeni Roller</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -46,154 +46,147 @@
         .results {
             color: #00ff00;
         }
-        .knowledge-panel {
+        .game-report {
             margin-top: 20px;
             padding: 10px;
             background-color: #333;
             border-radius: 5px;
             text-align: left;
+            color: white;
         }
-        .knowledge-panel h3 {
+        .game-report h3 {
             color: orange;
+        }
+        .winner-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: orange;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2em;
+            text-align: center;
+            z-index: 1000;
+            display: none;
         }
     </style>
 </head>
 <body>
-    <div class="container" id="loginScreen">
-        <h1>Vampir Köylü</h1>
-        <h2>Oyuncu Girişi</h2>
-        <select id="playerSelect">
-            <option value="">Oyuncu Seç</option>
-            <option value="Player1">Player1</option>
-            <option value="Player2">Player2</option>
-            <option value="Player3">Player3</option>
-            <option value="Player4">Player4</option>
-        </select>
-        <button onclick="startGame()">Oyuna Başla</button>
-    </div>
+    <div class="winner-screen" id="winnerScreen"></div>
 
-    <div class="container" id="gameScreen" style="display: none;">
+    <div class="container" id="gameScreen">
         <h1>Vampir Köylü</h1>
-        <h2 id="roleDisplay"></h2>
+        <h2 id="roleDisplay">Rol: Vampir</h2>
         <div id="actionSection">
             <!-- Player-specific actions will appear here -->
         </div>
         <p id="message" class="results"></p>
         <button id="nextPhaseButton" onclick="nextPhase()">Sonraki Aşama</button>
-        <div class="knowledge-panel" id="knowledgePanel">
-            <h3>Öğrenilen Bilgiler:</h3>
-            <ul id="knowledgeList"></ul>
-        </div>
+    </div>
+
+    <div class="container game-report" id="reportScreen" style="display: none;">
+        <h3>Oyun Sonu Raporu</h3>
+        <ul id="reportList"></ul>
     </div>
 
     <script>
         const players = {
-            Player1: { role: "Vampir", status: "alive" },
-            Player2: { role: "Büyücü", status: "alive" },
-            Player3: { role: "Kâhin", status: "alive" },
-            Player4: { role: "Masum Köylü", status: "alive" }
+            Player1: { role: "Vampir", status: "alive", actions: [] },
+            Player2: { role: "Avcı", status: "alive", actions: [] },
+            Player3: { role: "Aşık", status: "alive", linked: "Player4", actions: [] },
+            Player4: { role: "Aşık", status: "alive", linked: "Player3", actions: [] },
+            Player5: { role: "Karanlık Kâhin", status: "alive", actions: [] }
         };
 
-        let currentPlayer = null;
         let phase = "Gece";
-        let knowledge = {};
 
-        function startGame() {
-            const selectedPlayer = document.getElementById("playerSelect").value;
-            if (selectedPlayer) {
-                currentPlayer = selectedPlayer;
-                knowledge[currentPlayer] = [];
-                document.getElementById("loginScreen").style.display = "none";
-                document.getElementById("gameScreen").style.display = "block";
-                document.getElementById("roleDisplay").textContent = `Rolünüz: ${players[currentPlayer].role}`;
-                renderActions();
-            } else {
-                alert("Lütfen bir oyuncu seçin!");
+        function checkWinCondition() {
+            const alivePlayers = Object.values(players).filter(player => player.status === "alive");
+            const vampires = alivePlayers.filter(player => player.role === "Vampir").length;
+            const villagers = alivePlayers.filter(player => player.role !== "Vampir").length;
+
+            if (vampires === 0) {
+                showWinner("Köylüler kazandı!");
+                showReport();
+                return true;
             }
+            if (villagers === 0) {
+                showWinner("Vampirler kazandı!");
+                showReport();
+                return true;
+            }
+            return false;
+        }
+
+        function showWinner(message) {
+            const winnerScreen = document.getElementById("winnerScreen");
+            winnerScreen.textContent = message;
+            winnerScreen.style.display = "flex";
+        }
+
+        function showReport() {
+            document.getElementById("gameScreen").style.display = "none";
+            const reportScreen = document.getElementById("reportScreen");
+            const reportList = document.getElementById("reportList");
+            reportScreen.style.display = "block";
+
+            Object.entries(players).forEach(([player, data]) => {
+                const listItem = document.createElement("li");
+                listItem.textContent = `${player} (${data.role}): ${data.actions.join(", ") || "Hiçbir aksiyon almadı."}`;
+                reportList.appendChild(listItem);
+            });
         }
 
         function renderActions() {
             const actionSection = document.getElementById("actionSection");
             actionSection.innerHTML = "";
 
-            if (phase === "Gece" && players[currentPlayer].status === "alive") {
-                if (players[currentPlayer].role === "Vampir") {
-                    const select = document.createElement("select");
-                    select.id = "vampirTarget";
-                    select.innerHTML = `
-                        <option value="">Hedef Seç</option>
-                        ${Object.keys(players)
-                            .filter(p => p !== currentPlayer && players[p].status === "alive")
-                            .map(p => `<option value="${p}">${p}</option>`).join('')}
-                    `;
-                    actionSection.appendChild(select);
-                }
-                if (players[currentPlayer].role === "Büyücü") {
-                    const select = document.createElement("select");
-                    select.id = "buyucuTarget";
-                    select.innerHTML = `
-                        <option value="">Kimlik Öğren</option>
-                        ${Object.keys(players)
-                            .filter(p => p !== currentPlayer && players[p].status === "alive")
-                            .map(p => `<option value="${p}">${p}</option>`).join('')}
-                    `;
-                    actionSection.appendChild(select);
-                }
-                if (players[currentPlayer].role === "Kâhin") {
-                    const select = document.createElement("select");
-                    select.id = "kahinTarget";
-                    select.innerHTML = `
-                        <option value="">Vampir Kontrol</option>
-                        ${Object.keys(players)
-                            .filter(p => players[p].status === "alive")
-                            .map(p => `<option value="${p}">${p}</option>`).join('')}
-                    `;
-                    actionSection.appendChild(select);
-                }
-            } else if (phase === "Gündüz" && players[currentPlayer].status === "alive") {
-                const message = "Gündüz zamanı. Tartışmalar yapılabilir.";
-                actionSection.innerHTML = `<p>${message}</p>`;
+            if (phase === "Gece") {
+                const select = document.createElement("select");
+                select.id = "targetPlayer";
+                select.innerHTML = `
+                    <option value="">Hedef Seç</option>
+                    ${Object.keys(players)
+                        .filter(player => players[player].status === "alive")
+                        .map(player => `<option value="${player}">${player}</option>`).join('')}
+                `;
+                actionSection.appendChild(select);
+                const button = document.createElement("button");
+                button.textContent = "Hedefi Onayla";
+                button.onclick = () => {
+                    const target = document.getElementById("targetPlayer").value;
+                    if (target) {
+                        players[target].status = "dead";
+                        if (players[target].role === "Avcı") {
+                            players[target].actions.push(`Öldü ve intikam aldı.`);
+                            alert("Avcı bir kişiyi öldürme hakkına sahip!");
+                        }
+                        if (players[target].role === "Aşık") {
+                            const linked = players[target].linked;
+                            players[linked].status = "dead";
+                            players[linked].actions.push(`Aşığı öldüğü için öldü.`);
+                        }
+                        document.getElementById("message").textContent = `${target} öldürüldü!`;
+                        if (checkWinCondition()) return;
+                    }
+                };
+                actionSection.appendChild(button);
+            } else {
+                actionSection.innerHTML = "<p>Gündüz zamanı! Tartışma yapabilirsiniz.</p>";
             }
-        }
-
-        function updateKnowledge(info) {
-            if (!knowledge[currentPlayer]) knowledge[currentPlayer] = [];
-            knowledge[currentPlayer].push(info);
-            const knowledgeList = document.getElementById("knowledgeList");
-            const listItem = document.createElement("li");
-            listItem.textContent = info;
-            knowledgeList.appendChild(listItem);
         }
 
         function nextPhase() {
-            if (phase === "Gece") {
-                const vampirTarget = document.getElementById("vampirTarget")?.value;
-                const buyucuTarget = document.getElementById("buyucuTarget")?.value;
-                const kahinTarget = document.getElementById("kahinTarget")?.value;
-
-                if (buyucuTarget) {
-                    const info = `Büyücü ${buyucuTarget}'ın rolünü öğrendi: ${players[buyucuTarget].role}`;
-                    updateKnowledge(info);
-                    document.getElementById("message").textContent = info;
-                }
-                if (kahinTarget) {
-                    const isVampir = players[kahinTarget].role === "Vampir" ? "EVET" : "HAYIR";
-                    const info = `Kâhin ${kahinTarget} bir vampir mi? ${isVampir}`;
-                    updateKnowledge(info);
-                    document.getElementById("message").textContent = info;
-                }
-                if (vampirTarget) {
-                    const info = `Vampir ${vampirTarget}'ı öldürdü!`;
-                    players[vampirTarget].status = "dead";
-                    document.getElementById("message").textContent = info;
-                }
-
-                phase = "Gündüz";
-            } else {
-                phase = "Gece";
-            }
+            phase = phase === "Gece" ? "Gündüz" : "Gece";
+            document.getElementById("roleDisplay").textContent = `Faz: ${phase}`;
             renderActions();
         }
+
+        renderActions();
     </script>
 </body>
 </html>
