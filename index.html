@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vampir Köylü - Kazanan Belirleme</title>
+    <title>Vampir Köylü - Yeni Roller</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -62,9 +62,9 @@
     <script>
         const players = {
             Player1: { role: "Vampir", status: "alive" },
-            Player2: { role: "Doktor", status: "alive" },
-            Player3: { role: "Köylü", status: "alive" },
-            Player4: { role: "Köylü", status: "alive" }
+            Player2: { role: "Büyücü", status: "alive" },
+            Player3: { role: "Kâhin", status: "alive" },
+            Player4: { role: "Masum Köylü", status: "alive" }
         };
 
         let phase = "Gece";
@@ -95,30 +95,43 @@
 
             if (phase === "Gece") {
                 for (const [player, data] of Object.entries(players)) {
-                    if (data.status === "alive" && data.role === "Vampir") {
-                        const select = document.createElement("select");
-                        select.id = "vampirTarget";
-                        select.innerHTML = `
-                            <option value="">Hedef Seç</option>
-                            ${Object.keys(players)
-                                .filter(p => p !== player && players[p].status === "alive")
-                                .map(p => `<option value="${p}">${p}</option>`).join('')}
-                        `;
-                        actionSection.appendChild(select);
-                    }
-                    if (data.status === "alive" && data.role === "Doktor") {
-                        const select = document.createElement("select");
-                        select.id = "doktorTarget";
-                        select.innerHTML = `
-                            <option value="">Koruma Seç</option>
-                            ${Object.keys(players)
-                                .filter(p => p !== player && players[p].status === "alive")
-                                .map(p => `<option value="${p}">${p}</option>`).join('')}
-                        `;
-                        actionSection.appendChild(select);
+                    if (data.status === "alive") {
+                        if (data.role === "Vampir") {
+                            const select = document.createElement("select");
+                            select.id = "vampirTarget";
+                            select.innerHTML = `
+                                <option value="">Hedef Seç</option>
+                                ${Object.keys(players)
+                                    .filter(p => p !== player && players[p].status === "alive")
+                                    .map(p => `<option value="${p}">${p}</option>`).join('')}
+                            `;
+                            actionSection.appendChild(select);
+                        }
+                        if (data.role === "Büyücü") {
+                            const select = document.createElement("select");
+                            select.id = "buyucuTarget";
+                            select.innerHTML = `
+                                <option value="">Kimlik Öğren</option>
+                                ${Object.keys(players)
+                                    .filter(p => p !== player && players[p].status === "alive")
+                                    .map(p => `<option value="${p}">${p}</option>`).join('')}
+                            `;
+                            actionSection.appendChild(select);
+                        }
+                        if (data.role === "Kâhin") {
+                            const select = document.createElement("select");
+                            select.id = "kahinTarget";
+                            select.innerHTML = `
+                                <option value="">Vampir Kontrol</option>
+                                ${Object.keys(players)
+                                    .filter(p => players[p].status === "alive")
+                                    .map(p => `<option value="${p}">${p}</option>`).join('')}
+                            `;
+                            actionSection.appendChild(select);
+                        }
                     }
                 }
-                document.getElementById("message").textContent = "Gece: Aksiyonlarınızı seçin ve 'Sonraki Aşama'ya tıklayın.";
+                document.getElementById("message").textContent = "Gece: Roller aksiyonlarını yapabilir. 'Sonraki Aşama'ya tıklayın.";
             } else if (phase === "Gündüz") {
                 for (const [player, data] of Object.entries(players)) {
                     if (data.status === "alive") {
@@ -139,14 +152,22 @@
 
         function nextPhase() {
             if (phase === "Gece") {
-                const vampirTarget = document.getElementById("vampirTarget").value;
-                const doktorTarget = document.getElementById("doktorTarget").value;
-                if (vampirTarget === doktorTarget) {
-                    document.getElementById("message").textContent = `Doktor ${doktorTarget}'ı korudu! Kimse ölmedi.`;
-                } else if (vampirTarget) {
+                const vampirTarget = document.getElementById("vampirTarget")?.value;
+                const buyucuTarget = document.getElementById("buyucuTarget")?.value;
+                const kahinTarget = document.getElementById("kahinTarget")?.value;
+
+                if (buyucuTarget) {
+                    document.getElementById("message").textContent = `Büyücü ${buyucuTarget}'ın rolünü öğrendi: ${players[buyucuTarget].role}`;
+                }
+                if (kahinTarget) {
+                    const isVampir = players[kahinTarget].role === "Vampir" ? "EVET" : "HAYIR";
+                    document.getElementById("message").textContent = `Kâhin ${kahinTarget} bir vampir mi? ${isVampir}`;
+                }
+                if (vampirTarget) {
                     document.getElementById("message").textContent = `Vampir ${vampirTarget}'ı öldürdü!`;
                     players[vampirTarget].status = "dead";
                 }
+
                 phase = "Gündüz";
                 document.getElementById("phase").textContent = "Gündüz";
             } else {
