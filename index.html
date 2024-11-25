@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vampir Köylü - Rastgele Rol Atama</title>
+    <title>Vampir Köylü - Kazanan Taraf ve Geçişler</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -46,35 +46,43 @@
         .results {
             color: #00ff00;
         }
-        .role-list {
-            margin-top: 20px;
-            padding: 10px;
-            background-color: #333;
-            border-radius: 5px;
-            text-align: left;
-            color: white;
+        .transition-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            opacity: 0;
+            z-index: 999;
+            display: none;
+            transition: opacity 1s;
         }
-        .role-list h3 {
+        .winner-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
             color: orange;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2em;
+            text-align: center;
+            z-index: 1000;
+            display: none;
         }
     </style>
 </head>
 <body>
-    <div class="container" id="roleAssignmentScreen">
-        <h1>Vampir Köylü</h1>
-        <h2>Rastgele Rol Atama</h2>
-        <button onclick="assignRoles()">Rolleri Ata</button>
-    </div>
+    <div class="transition-screen" id="transitionScreen"></div>
+    <div class="winner-screen" id="winnerScreen"></div>
 
-    <div class="container role-list" id="roleListScreen" style="display: none;">
-        <h3>Oyuncu Rolleri</h3>
-        <ul id="roleList"></ul>
-        <button onclick="startGame()">Oyuna Başla</button>
-    </div>
-
-    <div class="container" id="gameScreen" style="display: none;">
+    <div class="container" id="gameScreen">
         <h1>Vampir Köylü</h1>
-        <h2 id="roleDisplay">Rol: Vampir</h2>
+        <h2 id="roleDisplay"></h2>
         <div id="actionSection">
             <!-- Player-specific actions will appear here -->
         </div>
@@ -86,6 +94,8 @@
         const roles = ["Vampir", "Doktor", "Kâhin", "Masum Köylü", "Avcı"];
         const players = ["Player1", "Player2", "Player3", "Player4", "Player5"];
         const assignedRoles = {};
+        const playerStates = {};
+        let phase = "Gece";
 
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
@@ -98,36 +108,21 @@
             shuffleArray(roles);
             players.forEach((player, index) => {
                 assignedRoles[player] = roles[index % roles.length];
+                playerStates[player] = { alive: true, protected: false };
             });
-            displayRoleList();
-        }
-
-        function displayRoleList() {
-            const roleListScreen = document.getElementById("roleListScreen");
-            const roleList = document.getElementById("roleList");
-            roleListScreen.style.display = "block";
-
-            Object.entries(assignedRoles).forEach(([player, role]) => {
-                const listItem = document.createElement("li");
-                listItem.textContent = `${player}: ${role}`;
-                roleList.appendChild(listItem);
-            });
-
-            document.getElementById("roleAssignmentScreen").style.display = "none";
+            startGame();
         }
 
         function startGame() {
-            document.getElementById("roleListScreen").style.display = "none";
-            document.getElementById("gameScreen").style.display = "block";
-            document.getElementById("roleDisplay").textContent = `Rol: ${assignedRoles.Player1}`;
+            document.getElementById("roleDisplay").textContent = `Rolünüz: ${assignedRoles.Player1}`;
             renderActions();
         }
-
-        let phase = "Gece";
 
         function renderActions() {
             const actionSection = document.getElementById("actionSection");
             actionSection.innerHTML = "";
+
+            const currentRole = assignedRoles.Player1;
 
             if (phase === "Gece") {
                 const select = document.createElement("select");
@@ -135,16 +130,18 @@
                 select.innerHTML = `
                     <option value="">Hedef Seç</option>
                     ${players
-                        .filter(player => assignedRoles[player] !== "Vampir")
+                        .filter(player => player !== "Player1" && playerStates[player].alive)
                         .map(player => `<option value="${player}">${player}</option>`).join('')}
                 `;
                 actionSection.appendChild(select);
+
                 const button = document.createElement("button");
                 button.textContent = "Hedefi Onayla";
+
                 button.onclick = () => {
                     const target = document.getElementById("targetPlayer").value;
                     if (target) {
-                        document.getElementById("message").textContent = `${target} hedeflendi!`;
+                        performRoleAction(currentRole, target);
                     }
                 };
                 actionSection.appendChild(button);
@@ -153,11 +150,73 @@
             }
         }
 
-        function nextPhase() {
-            phase = phase === "Gece" ? "Gündüz" : "Gece";
-            document.getElementById("roleDisplay").textContent = `Faz: ${phase}`;
-            renderActions();
+        function performRoleAction(role, target) {
+            if (role === "Vampir") {
+                if (!playerStates[target].protected) {
+                    playerStates[target].alive = false;
+                    document.getElementById("message").textContent = `${target} öldürüldü!`;
+                } else {
+                    document.getElementById("message").textContent = `${target} korundu!`;
+                }
+            } else if (role === "Doktor") {
+                playerStates[target].protected = true;
+                document.getElementById("message").textContent = `${target} koruma altına alındı!`;
+            } else if (role === "Kâhin") {
+                const isVampir = assignedRoles[target] === "Vampir" ? "EVET" : "HAYIR";
+                document.getElementById("message").textContent = `${target} bir vampir mi? ${isVampir}`;
+            } else {
+                document.getElementById("message").textContent = "Aksiyon gerçekleştirildi.";
+            }
+
+            if (checkWinCondition()) return;
         }
+
+        function nextPhase() {
+            showTransition();
+            setTimeout(() => {
+                phase = phase === "Gece" ? "Gündüz" : "Gece";
+                document.getElementById("roleDisplay").textContent = `Faz: ${phase}`;
+                renderActions();
+            }, 1000);
+        }
+
+        function showTransition() {
+            const transitionScreen = document.getElementById("transitionScreen");
+            transitionScreen.style.display = "block";
+            transitionScreen.style.opacity = 1;
+            setTimeout(() => {
+                transitionScreen.style.opacity = 0;
+                setTimeout(() => {
+                    transitionScreen.style.display = "none";
+                }, 1000);
+            }, 1000);
+        }
+
+        function checkWinCondition() {
+            const alivePlayers = players.filter(player => playerStates[player].alive);
+            const vampires = alivePlayers.filter(player => assignedRoles[player] === "Vampir").length;
+            const villagers = alivePlayers.filter(player => assignedRoles[player] !== "Vampir").length;
+
+            if (vampires === 0) {
+                showWinner("Köylüler kazandı!");
+                return true;
+            }
+
+            if (villagers === 0) {
+                showWinner("Vampirler kazandı!");
+                return true;
+            }
+
+            return false;
+        }
+
+        function showWinner(message) {
+            const winnerScreen = document.getElementById("winnerScreen");
+            winnerScreen.textContent = message;
+            winnerScreen.style.display = "flex";
+        }
+
+        assignRoles();
     </script>
 </body>
 </html>
