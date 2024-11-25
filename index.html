@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vampir Köylü - Düzeltmelerle Birlikte</title>
+    <title>Vampir Köylü - Tüm Özellikler</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -76,6 +76,10 @@
         .action-section {
             margin-top: 20px;
         }
+        .timer {
+            font-size: 1.5em;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body class="night">
@@ -86,19 +90,22 @@
     <div class="action-section" id="actionSection">
         <!-- Player actions will appear here -->
     </div>
+    <div class="timer" id="timer">Süre: --</div>
     <button onclick="togglePhase()">Fazı Değiştir</button>
 
     <script>
         const roles = ["Vampir", "Doktor", "Kâhin", "Masum Köylü", "Avcı"];
         const players = [
-            { name: "Player1", role: null, status: "alive" },
-            { name: "Player2", role: null, status: "alive" },
-            { name: "Player3", role: null, status: "alive" },
-            { name: "Player4", role: null, status: "alive" },
-            { name: "Player5", role: null, status: "alive" }
+            { name: "Player1", role: null, status: "alive", hasActed: false },
+            { name: "Player2", role: null, status: "alive", hasActed: false },
+            { name: "Player3", role: null, status: "alive", hasActed: false },
+            { name: "Player4", role: null, status: "alive", hasActed: false },
+            { name: "Player5", role: null, status: "alive", hasActed: false }
         ];
         let currentPlayerIndex = 0;
         let phase = "Gece";
+        let timer;
+        let timeLeft;
 
         function assignRoles() {
             const shuffledRoles = [...roles];
@@ -124,12 +131,27 @@
             });
         }
 
+        function startTimer(duration, callback) {
+            clearInterval(timer);
+            timeLeft = duration;
+            const timerElement = document.getElementById("timer");
+            timerElement.textContent = `Süre: ${timeLeft}`;
+            timer = setInterval(() => {
+                timeLeft--;
+                timerElement.textContent = `Süre: ${timeLeft}`;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    callback();
+                }
+            }, 1000);
+        }
+
         function renderActions() {
             const actionSection = document.getElementById("actionSection");
             actionSection.innerHTML = "";
 
             const currentPlayer = players[currentPlayerIndex];
-            if (currentPlayer.status === "dead") {
+            if (currentPlayer.status === "dead" || currentPlayer.hasActed) {
                 nextPlayer();
                 return;
             }
@@ -157,6 +179,7 @@
                     if (targetName) {
                         const target = players.find(player => player.name === targetName);
                         target.status = "dead";
+                        currentPlayer.hasActed = true;
                         renderPlayerCards();
                         nextPlayer();
                     }
@@ -168,21 +191,27 @@
         }
 
         function nextPlayer() {
-            currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
-            if (currentPlayerIndex === 0) togglePhase();
-            else renderActions();
+            currentPlayerIndex++;
+            if (currentPlayerIndex >= players.length) {
+                togglePhase();
+                return;
+            }
+            renderActions();
         }
 
         function togglePhase() {
             phase = phase === "Gece" ? "Gündüz" : "Gece";
             document.body.className = phase === "Gece" ? "night" : "day";
+            players.forEach(player => (player.hasActed = false));
             currentPlayerIndex = 0;
+            const duration = phase === "Gece" ? 15 : 60;
+            startTimer(duration, togglePhase);
             renderActions();
         }
 
         assignRoles();
         renderPlayerCards();
-        renderActions();
+        togglePhase();
     </script>
 </body>
 </html>
