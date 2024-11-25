@@ -3,12 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vampir Köylü - Kazanan Taraf ve Geçişler</title>
+    <title>Vampir Köylü - Tüm Özellikler</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #1e1e1e;
-            color: white;
             margin: 0;
             padding: 0;
             display: flex;
@@ -16,47 +14,64 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
+            transition: background-color 1s, color 1s;
+        }
+        .night {
+            background-color: #1e1e1e;
+            color: white;
+        }
+        .day {
+            background-color: #f5f5f5;
+            color: black;
         }
         .container {
             text-align: center;
             width: 90%;
-            max-width: 400px;
+            max-width: 800px;
             padding: 20px;
-            background-color: #2e2e2e;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        .player-card {
+            width: 120px;
+            height: 180px;
             border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s, box-shadow 0.3s;
         }
-        h1, h2 {
-            color: orange;
-            margin: 10px 0;
+        .player-card:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
         }
-        select, button {
+        .player-card.alive {
+            background-color: #4caf50;
+            color: white;
+        }
+        .player-card.dead {
+            background-color: #f44336;
+            color: white;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
             background-color: orange;
             color: white;
             border: none;
-            padding: 10px;
-            margin: 10px 0;
             border-radius: 5px;
             cursor: pointer;
-            width: 100%;
+            transition: background-color 0.3s;
         }
         button:hover {
             background-color: #ff9800;
-        }
-        .results {
-            color: #00ff00;
-        }
-        .transition-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: black;
-            opacity: 0;
-            z-index: 999;
-            display: none;
-            transition: opacity 1s;
         }
         .winner-screen {
             position: fixed;
@@ -74,109 +89,70 @@
             z-index: 1000;
             display: none;
         }
+        .transition-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            opacity: 0;
+            z-index: 999;
+            display: none;
+            transition: opacity 1s;
+        }
     </style>
 </head>
-<body>
-    <div class="transition-screen" id="transitionScreen"></div>
+<body class="night">
     <div class="winner-screen" id="winnerScreen"></div>
+    <div class="transition-screen" id="transitionScreen"></div>
 
-    <div class="container" id="gameScreen">
-        <h1>Vampir Köylü</h1>
-        <h2 id="roleDisplay"></h2>
-        <div id="actionSection">
-            <!-- Player-specific actions will appear here -->
-        </div>
-        <p id="message" class="results"></p>
-        <button id="nextPhaseButton" onclick="nextPhase()">Sonraki Aşama</button>
+    <h1>Vampir Köylü</h1>
+    <div class="container" id="playerCards">
+        <!-- Player cards will be dynamically generated here -->
     </div>
+    <button onclick="togglePhase()">Fazı Değiştir</button>
 
     <script>
         const roles = ["Vampir", "Doktor", "Kâhin", "Masum Köylü", "Avcı"];
-        const players = ["Player1", "Player2", "Player3", "Player4", "Player5"];
-        const assignedRoles = {};
-        const playerStates = {};
+        const players = [
+            { name: "Player1", role: null, status: "alive" },
+            { name: "Player2", role: null, status: "alive" },
+            { name: "Player3", role: null, status: "alive" },
+            { name: "Player4", role: null, status: "alive" },
+            { name: "Player5", role: null, status: "alive" }
+        ];
         let phase = "Gece";
 
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-        }
-
         function assignRoles() {
-            shuffleArray(roles);
+            const shuffledRoles = [...roles];
+            shuffledRoles.sort(() => Math.random() - 0.5);
             players.forEach((player, index) => {
-                assignedRoles[player] = roles[index % roles.length];
-                playerStates[player] = { alive: true, protected: false };
+                player.role = shuffledRoles[index % roles.length];
             });
-            startGame();
         }
 
-        function startGame() {
-            document.getElementById("roleDisplay").textContent = `Rolünüz: ${assignedRoles.Player1}`;
-            renderActions();
-        }
-
-        function renderActions() {
-            const actionSection = document.getElementById("actionSection");
-            actionSection.innerHTML = "";
-
-            const currentRole = assignedRoles.Player1;
-
-            if (phase === "Gece") {
-                const select = document.createElement("select");
-                select.id = "targetPlayer";
-                select.innerHTML = `
-                    <option value="">Hedef Seç</option>
-                    ${players
-                        .filter(player => player !== "Player1" && playerStates[player].alive)
-                        .map(player => `<option value="${player}">${player}</option>`).join('')}
+        function renderPlayerCards() {
+            const playerCards = document.getElementById("playerCards");
+            playerCards.innerHTML = "";
+            players.forEach(player => {
+                const card = document.createElement("div");
+                card.className = `player-card ${player.status}`;
+                card.innerHTML = `
+                    <h3>${player.name}</h3>
+                    <p>${player.status === "alive" ? "Yaşıyor" : "Öldü"}</p>
+                    <small>Rol: ${player.role}</small>
                 `;
-                actionSection.appendChild(select);
-
-                const button = document.createElement("button");
-                button.textContent = "Hedefi Onayla";
-
-                button.onclick = () => {
-                    const target = document.getElementById("targetPlayer").value;
-                    if (target) {
-                        performRoleAction(currentRole, target);
-                    }
-                };
-                actionSection.appendChild(button);
-            } else {
-                actionSection.innerHTML = "<p>Gündüz zamanı! Tartışma yapabilirsiniz.</p>";
-            }
+                playerCards.appendChild(card);
+            });
         }
 
-        function performRoleAction(role, target) {
-            if (role === "Vampir") {
-                if (!playerStates[target].protected) {
-                    playerStates[target].alive = false;
-                    document.getElementById("message").textContent = `${target} öldürüldü!`;
-                } else {
-                    document.getElementById("message").textContent = `${target} korundu!`;
-                }
-            } else if (role === "Doktor") {
-                playerStates[target].protected = true;
-                document.getElementById("message").textContent = `${target} koruma altına alındı!`;
-            } else if (role === "Kâhin") {
-                const isVampir = assignedRoles[target] === "Vampir" ? "EVET" : "HAYIR";
-                document.getElementById("message").textContent = `${target} bir vampir mi? ${isVampir}`;
-            } else {
-                document.getElementById("message").textContent = "Aksiyon gerçekleştirildi.";
-            }
-
-            if (checkWinCondition()) return;
-        }
-
-        function nextPhase() {
+        function togglePhase() {
             showTransition();
             setTimeout(() => {
                 phase = phase === "Gece" ? "Gündüz" : "Gece";
-                document.getElementById("roleDisplay").textContent = `Faz: ${phase}`;
-                renderActions();
+                document.body.className = phase === "Gece" ? "night" : "day";
+                checkWinCondition();
             }, 1000);
         }
 
@@ -193,21 +169,15 @@
         }
 
         function checkWinCondition() {
-            const alivePlayers = players.filter(player => playerStates[player].alive);
-            const vampires = alivePlayers.filter(player => assignedRoles[player] === "Vampir").length;
-            const villagers = alivePlayers.filter(player => assignedRoles[player] !== "Vampir").length;
+            const alivePlayers = players.filter(player => player.status === "alive");
+            const vampires = alivePlayers.filter(player => player.role === "Vampir").length;
+            const villagers = alivePlayers.filter(player => player.role !== "Vampir").length;
 
             if (vampires === 0) {
                 showWinner("Köylüler kazandı!");
-                return true;
-            }
-
-            if (villagers === 0) {
+            } else if (villagers === 0) {
                 showWinner("Vampirler kazandı!");
-                return true;
             }
-
-            return false;
         }
 
         function showWinner(message) {
@@ -217,6 +187,7 @@
         }
 
         assignRoles();
+        renderPlayerCards();
     </script>
 </body>
 </html>
