@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vampir Köylü - Güncel</title>
+    <title>Vampir Köylü</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -115,6 +115,7 @@
         let phase = "Gece";
         let timer;
         let timeLeft;
+        let userRole = null; // Kullanıcının kendi rolü
 
         function startGame() {
             const startSection = document.getElementById("startSection");
@@ -132,6 +133,8 @@
 
             assignRoles();
             renderPlayerCards();
+            userRole = players[0].role; // İlk oyuncuya (kullanıcıya) rol atanır
+            alert(`Rolünüz: ${userRole}`);
             startSection.style.display = "none";
             document.getElementById("playerCards").style.display = "flex";
             document.getElementById("timer").style.display = "block";
@@ -156,7 +159,6 @@
                 card.innerHTML = `
                     <h3>${player.name}</h3>
                     <p>${player.status === "alive" ? "Yaşıyor" : "Öldü"}</p>
-                    <small>Rol: ${player.role}</small>
                 `;
                 playerCards.appendChild(card);
             });
@@ -170,8 +172,8 @@
             timer = setInterval(() => {
                 timeLeft--;
                 timerElement.textContent = `Süre: ${timeLeft}`;
-                if (timeLeft <= 0) {
-                    clearInterval(timer);
+                if (timeLeft <= 0)
+                                        clearInterval(timer);
                     callback();
                 }
             }, 1000);
@@ -203,17 +205,20 @@
                 return;
             }
 
-            const message = document.createElement("p");
-            message.textContent = `${currentPlayer.name} (${currentPlayer.role}): Aksiyon yapıyor.`;
-            actionSection.appendChild(message);
+            if (currentPlayer.name === "Oyuncu 1") {
+                const message = document.createElement("p");
+                message.textContent = `Sizin sıranız! (${userRole})`;
+                actionSection.appendChild(message);
 
-            if (phase === "Gece") {
-                if (currentPlayer.role === "Vampir") renderVampirActions(currentPlayer);
-                else if (currentPlayer.role === "Doktor") renderDoktorActions(currentPlayer);
-                else if (currentPlayer.role === "Kâhin") renderKahinActions(currentPlayer);
+                if (userRole === "Vampir") renderVampirActions(currentPlayer);
+                else if (userRole === "Doktor") renderDoktorActions(currentPlayer);
+                else if (userRole === "Kâhin") renderKahinActions(currentPlayer);
                 else nextPlayer();
             } else {
-                nextPlayer();
+                const message = document.createElement("p");
+                message.textContent = `${currentPlayer.name} aksiyon yapıyor...`;
+                actionSection.appendChild(message);
+                setTimeout(nextPlayer, 2000); // Diğer oyuncuların aksiyonu simüle edilir
             }
         }
 
@@ -224,7 +229,7 @@
                 <h3>Oylama Başladı! Birini Seçin:</h3>
                 <select id="votePlayer">
                     ${players
-                        .filter(player => player.status === "alive")
+                        .filter(player => player.status === "alive" && player.name !== "Oyuncu 1")
                         .map(player => `<option value="${player.name}">${player.name}</option>`).join("")}
                 </select>
                 <button onclick="handleVote()">Oy Ver</button>
@@ -242,23 +247,14 @@
             }
         }
 
-        function nextPlayer() {
-            currentPlayerIndex++;
-            if (currentPlayerIndex >= players.length) {
-                togglePhase();
-            } else {
-                renderActions();
-            }
-        }
-
-                function renderVampirActions(player) {
+        function renderVampirActions(player) {
             const actionSection = document.getElementById("actionSection");
             const select = document.createElement("select");
             select.id = "targetPlayer";
             select.innerHTML = `
                 <option value="">Hedef Seç</option>
                 ${players
-                    .filter(p => p.status === "alive" && p !== player)
+                    .filter(p => p.status === "alive" && p.name !== player.name)
                     .map(p => `<option value="${p.name}">${p.name}</option>`).join("")}
             `;
             actionSection.appendChild(select);
@@ -309,7 +305,7 @@
             select.innerHTML = `
                 <option value="">Tahmin Yapılacak Oyuncuyu Seç</option>
                 ${players
-                    .filter(p => p.status === "alive" && p !== player)
+                    .filter(p => p.status === "alive" && p.name !== player.name)
                     .map(p => `<option value="${p.name}">${p.name}</option>`).join("")}
             `;
             actionSection.appendChild(select);
@@ -328,12 +324,22 @@
             actionSection.appendChild(button);
         }
 
+        function nextPlayer() {
+            currentPlayerIndex++;
+            if (currentPlayerIndex >= players.length) {
+                checkWinCondition();
+                togglePhase();
+            } else {
+                renderActions();
+            }
+        }
+
         function checkWinCondition() {
             const alivePlayers = players.filter(player => player.status === "alive");
             const vampires = alivePlayers.filter(player => player.role === "Vampir");
             const villagers = alivePlayers.filter(player => player.role !== "Vampir");
 
-            if (vampires.length === 0) {
+                        if (vampires.length === 0) {
                 alert("Köylüler kazandı!");
                 resetGame();
             } else if (vampires.length >= villagers.length) {
@@ -344,12 +350,8 @@
 
         function resetGame() {
             clearInterval(timer);
-            alert("Oyun bitti! Sayfayı yenileyerek yeni bir oyun başlatabilirsiniz.");
+            alert("Oyun sona erdi! Sayfayı yenileyerek yeni bir oyun başlatabilirsiniz.");
         }
-
-        assignRoles();
     </script>
 </body>
 </html>
-            
-           
