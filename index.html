@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vampir Köylü - Başlat</title>
+    <title>Vampir Köylü - Güncel</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -73,7 +73,7 @@
         button:hover {
             background-color: #ff9800;
         }
-        .action-section, .vote-section, .start-section {
+        .action-section, .vote-section {
             margin-top: 20px;
         }
         .timer {
@@ -83,63 +83,26 @@
     </style>
 </head>
 <body>
-    <div class="start-section" id="startSection">
-        <h1>Vampir Köylü</h1>
-        <p>Oyuncu isimlerini girin ve oyunu başlatın:</p>
-        <div id="playerInputs">
-            <input type="text" placeholder="Oyuncu 1" id="player1" />
-            <input type="text" placeholder="Oyuncu 2" id="player2" />
-            <input type="text" placeholder="Oyuncu 3" id="player3" />
-            <input type="text" placeholder="Oyuncu 4" id="player4" />
-            <input type="text" placeholder="Oyuncu 5" id="player5" />
-        </div>
-        <button onclick="startGame()">Oyunu Başlat</button>
+    <h1>Vampir Köylü</h1>
+    <div class="container" id="playerCards">
+        <!-- Oyuncu kartları buraya render edilecek -->
     </div>
-    <div class="container" id="playerCards" style="display: none;"></div>
-    <div class="action-section" id="actionSection" style="display: none;"></div>
+    <div class="action-section" id="actionSection"></div>
     <div class="vote-section" id="voteSection" style="display: none;"></div>
-    <div class="timer" id="timer" style="display: none;">Süre: --</div>
+    <div class="timer" id="timer">Süre: --</div>
     <script>
         const roles = ["Vampir", "Doktor", "Kâhin", "Masum Köylü", "Avcı"];
-        const players = [];
+        const players = [
+            { name: "Naber", role: "Masum Köylü", status: "alive", hasActed: false },
+            { name: "Kok u", role: "Kâhin", status: "alive", hasActed: false },
+            { name: "Deli og", role: "Vampir", status: "alive", hasActed: false },
+            { name: "Gezo", role: "Doktor", status: "alive", hasActed: false },
+            { name: "Okcu", role: "Avcı", status: "alive", hasActed: false }
+        ];
         let currentPlayerIndex = 0;
         let phase = "Gece";
         let timer;
         let timeLeft;
-
-        function startGame() {
-            const startSection = document.getElementById("startSection");
-            const playerInputs = document.querySelectorAll("#playerInputs input");
-            playerInputs.forEach((input, index) => {
-                if (input.value.trim() !== "") {
-                    players.push({
-                        name: input.value.trim(),
-                        role: null,
-                        status: "alive",
-                        hasActed: false,
-                    });
-                }
-            });
-            if (players.length < 5) {
-                alert("En az 5 oyuncu gerekiyor!");
-                return;
-            }
-            assignRoles();
-            renderPlayerCards();
-            startSection.style.display = "none";
-            document.getElementById("playerCards").style.display = "flex";
-            document.getElementById("timer").style.display = "block";
-            togglePhase();
-        }
-
-        function assignRoles() {
-            const shuffledRoles = [...roles];
-            shuffledRoles.sort(() => Math.random() - 0.5);
-            players.forEach((player, index) => {
-                player.role = shuffledRoles[index % roles.length];
-            });
-            console.log("Atanan Roller:", players);
-        }
 
         function renderPlayerCards() {
             const playerCards = document.getElementById("playerCards");
@@ -187,7 +150,6 @@
 
         function renderActions() {
             const actionSection = document.getElementById("actionSection");
-            actionSection.style.display = "block";
             actionSection.innerHTML = "";
             const currentPlayer = players[currentPlayerIndex];
             if (currentPlayer.status === "dead" || currentPlayer.hasActed) {
@@ -200,6 +162,11 @@
             actionSection.appendChild(message);
 
             if (phase === "Gece") {
+                if (currentPlayer.role === "Vampir") renderVampirActions(currentPlayer);
+                else if (currentPlayer.role === "Doktor") renderDoktorActions(currentPlayer);
+                else if (currentPlayer.role === "Kâhin") renderKahinActions(currentPlayer);
+                else nextPlayer();
+            } else {
                 nextPlayer();
             }
         }
@@ -229,18 +196,112 @@
             }
         }
 
+        function renderVampirActions(player) {
+            const actionSection = document.getElementById("actionSection");
+            const select = document.createElement("select");
+            select.id = "targetPlayer";
+            select.innerHTML = `
+                <option value="">Hedef Seç</option>
+                ${players
+                    .filter(p => p.status === "alive" && p !== player)
+                    .map(p => `<option value="${p.name}">${p.name}</option>`).join("")}
+            `;
+            actionSection.appendChild(select);
+
+            const button = document.createElement("button");
+            button.textContent = "Saldır";
+            button.onclick = () => {
+                const targetName = document.getElementById("targetPlayer").value;
+                if (targetName) {
+                    const target = players.find(p => p.name === targetName);
+                    target.status = "dead";
+                    player.hasActed = true;
+                    renderPlayerCards();
+                    nextPlayer();
+                }
+            };
+            actionSection.appendChild(button);
+        }
+
+        function renderDoktorActions(player) {
+            const actionSection = document.getElementById("actionSection");
+            const select = document.createElement("select");
+            select.id = "healPlayer";
+            select.innerHTML = `
+                <option value="">Koruma Seç</option>
+                ${players
+                    .filter(p => p.status === "alive")
+                    .map(p => `<option value="${p.name}">${p.name}</option>`).join("")}
+            `;
+            actionSection.appendChild(select);
+
+            const button = document.createElement("button");
+            button.textContent = "Koruma";
+            button.onclick = () => {
+                player.hasActed = true;
+                nextPlayer();
+            };
+            actionSection.appendChild(button);
+        }
+
+        function renderKahinActions(player) {
+                        const actionSection = document.getElementById("actionSection");
+            const select = document.createElement("select");
+            select.id = "inspectPlayer";
+            select.innerHTML = `
+                <option value="">Tahmin Yapılacak Oyuncuyu Seç</option>
+                ${players
+                    .filter(p => p.status === "alive" && p !== player)
+                    .map(p => `<option value="${p.name}">${p.name}</option>`).join("")}
+            `;
+            actionSection.appendChild(select);
+
+            const button = document.createElement("button");
+            button.textContent = "Tahmin Et";
+            button.onclick = () => {
+                const selectedPlayer = document.getElementById("inspectPlayer").value;
+                if (selectedPlayer) {
+                    const inspectedPlayer = players.find(p => p.name === selectedPlayer);
+                    alert(`${selectedPlayer} Vampir mi? ${inspectedPlayer.role === "Vampir" ? "Evet" : "Hayır"}`);
+                    player.hasActed = true;
+                    nextPlayer();
+                }
+            };
+            actionSection.appendChild(button);
+        }
+
         function nextPlayer() {
             currentPlayerIndex++;
             if (currentPlayerIndex >= players.length) {
                 togglePhase();
-                            } else {
+            } else {
                 renderActions();
             }
         }
 
-        // Oyun başlangıcı
-        assignRoles();
+        function checkWinCondition() {
+            const alivePlayers = players.filter(player => player.status === "alive");
+            const vampires = alivePlayers.filter(player => player.role === "Vampir");
+            const villagers = alivePlayers.filter(player => player.role !== "Vampir");
+
+            if (vampires.length === 0) {
+                alert("Köylüler kazandı!");
+                resetGame();
+            } else if (vampires.length >= villagers.length) {
+                alert("Vampirler kazandı!");
+                resetGame();
+            }
+        }
+
+        function resetGame() {
+            clearInterval(timer);
+            alert("Oyun bitti! Sayfayı yenileyerek yeni bir oyun başlatabilirsiniz.");
+        }
+
+        // Oyunu başlat
         renderPlayerCards();
+        togglePhase();
     </script>
 </body>
 </html>
+           
