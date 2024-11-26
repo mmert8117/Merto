@@ -27,33 +27,6 @@
         .hidden {
             display: none;
         }
-        .container {
-            text-align: center;
-            width: 90%;
-            max-width: 800px;
-            padding: 20px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-        }
-        .player-card {
-            width: 120px;
-            height: 180px;
-            border-radius: 10px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-            background-color: #4caf50;
-            color: white;
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-        .player-card.dead {
-            background-color: #f44336;
-            color: white;
-        }
         h1, h2 {
             margin-bottom: 20px;
         }
@@ -88,9 +61,7 @@
         <h1>Vampir Köylü</h1>
         <h2 id="phaseIndicator">Faz: Gece</h2>
         <p id="timer">Süre: --</p>
-        <div class="container" id="playerCards"></div>
         <div id="actionArea"></div>
-        <button onclick="nextPhase()" id="nextPhaseButton" class="hidden">Sonraki Faz</button>
     </div>
 
     <script>
@@ -107,7 +78,7 @@
             for (let i = 1; i <= playerCount; i++) {
                 players.push({
                     name: `Oyuncu ${i}`,
-                    role: null,
+                    role: roles[i % roles.length],
                     status: "alive",
                     hasActed: false
                 });
@@ -116,7 +87,6 @@
             alert(`Rolünüz: ${players[0].role}`);
             document.getElementById("startScreen").classList.add("hidden");
             document.getElementById("gameScreen").classList.remove("hidden");
-            renderPlayerCards();
             togglePhase();
         }
 
@@ -137,18 +107,22 @@
             currentPlayerIndex = 0;
 
             if (phase === "Gece") {
-                startTimer(players.length * 15, togglePhase);
-                renderActions();
+                startTimer(players.length * 15, () => {
+                    togglePhase();
+                });
+                renderNightActions();
             } else {
-                startTimer(60, handleVoting);
-                renderVoting();
+                startTimer(60, () => {
+                    togglePhase();
+                });
+                renderDayActions();
             }
         }
 
         function startTimer(duration, callback) {
             clearInterval(timer);
             timeLeft = duration;
-            const timerElement = document.getElementById("timer");
+                        const timerElement = document.getElementById("timer");
             timerElement.textContent = `Süre: ${timeLeft}`;
             timer = setInterval(() => {
                 timeLeft--;
@@ -160,24 +134,12 @@
             }, 1000);
         }
 
-        function renderPlayerCards() {
-            const playerCards = document.getElementById("playerCards");
-            playerCards.innerHTML = "";
-            players.forEach(player => {
-                const card = document.createElement("div");
-                card.className = `player-card ${player.status === "dead" ? "dead" : ""}`;
-                card.innerHTML = `
-                    <h3>${player.name}</h3>
-                    <p>${player.status === "alive" ? "Yaşıyor" : "Öldü"}</p>
-                `;
-                playerCards.appendChild(card);
-            });
-        }
-
-        function renderActions() {
+        function renderNightActions() {
             const actionArea = document.getElementById("actionArea");
             actionArea.innerHTML = "";
+
             const currentPlayer = players[currentPlayerIndex];
+
             if (currentPlayer.status === "dead" || currentPlayer.hasActed) {
                 nextPlayer();
                 return;
@@ -196,7 +158,7 @@
                 const message = document.createElement("p");
                 message.textContent = `${currentPlayer.name} aksiyon yapıyor...`;
                 actionArea.appendChild(message);
-                setTimeout(nextPlayer, 2000);
+                setTimeout(nextPlayer, 2000); // Diğer oyuncuların aksiyonu simüle edilir
             }
         }
 
@@ -220,11 +182,84 @@
                     const target = players.find(p => p.name === targetName);
                     target.status = "dead";
                     player.hasActed = true;
-                    renderPlayerCards();
+                    renderNightActions();
+                }
+            };
+            actionArea.appendChild(button);
+        }
+
+        function renderDoktorActions(player) {
+            const actionArea = document.getElementById("actionArea");
+            const select = document.createElement("select");
+            select.id = "healPlayer";
+            select.innerHTML = `
+                <option value="">Koruma Seç</option>
+                ${players
+                    .filter(p => p.status === "alive")
+                    .map(p => `<option value="${p.name}">${p.name}</option>`).join("")}
+            `;
+            actionArea.appendChild(select);
+
+            const button = document.createElement("button");
+            button.textContent = "Koruma";
+            button.onclick = () => {
+                const healName = document.getElementById("healPlayer").value;
+                if (healName) {
+                    player.hasActed = true;
                     nextPlayer();
                 }
             };
             actionArea.appendChild(button);
+        }
+
+        function renderKahinActions(player) {
+            const actionArea = document.getElementById("actionArea");
+            const select = document.createElement("select");
+            select.id = "inspectPlayer";
+            select.innerHTML = `
+                <option value="">Tahmin Yapılacak Oyuncuyu Seç</option>
+                ${players
+                    .filter(p => p.status === "alive" && p !== player)
+                    .map(p => `<option value="${p.name}">${p.name}</option>`).join("")}
+            `;
+            actionArea.appendChild(select);
+
+            const button = document.createElement("button");
+            button.textContent = "Tahmin Et";
+            button.onclick = () => {
+                const inspectName = document.getElementById("inspectPlayer").value;
+                if (inspectName) {
+                    const inspectedPlayer = players.find(p => p.name === inspectName);
+                    alert(`${inspectName} Vampir mi? ${inspectedPlayer.role === "Vampir" ? "Evet" : "Hayır"}`);
+                    player.hasActed = true;
+                    nextPlayer();
+                }
+            };
+            actionArea.appendChild(button);
+        }
+
+        function renderDayActions() {
+            const actionArea = document.getElementById("actionArea");
+            actionArea.innerHTML = `
+                <h3>Oylama Başladı! Birini Seçin:</h3>
+                <select id="votePlayer">
+                    ${players
+                        .filter(player => player.status === "alive")
+                        .map(player => `<option value="${player.name}">${player.name}</option>`).join("")}
+                </select>
+                <button onclick="handleVote()">Oy Ver</button>
+            `;
+        }
+
+        function handleVote() {
+            const selectedPlayer = document.getElementById("votePlayer").value;
+            if (selectedPlayer) {
+                const target = players.find(player => player.name === selectedPlayer);
+                target.status = "dead";
+                renderPlayerCards();
+                checkWinCondition();
+                togglePhase();
+            }
         }
 
         function nextPlayer() {
@@ -232,8 +267,27 @@
             if (currentPlayerIndex >= players.length) {
                 togglePhase();
             } else {
-                renderActions();
+                renderNightActions();
             }
+        }
+
+        function checkWinCondition() {
+            const alivePlayers = players.filter(player => player.status === "alive");
+            const vampires = alivePlayers.filter(player => player.role === "Vampir");
+            const villagers = alivePlayers.filter(player => player.role !== "Vampir");
+
+            if (vampires.length === 0) {
+                alert("Köylüler kazandı!");
+                resetGame();
+            } else if (vampires.length >= villagers.length) {
+                alert("Vampirler kazandı!");
+                resetGame();
+            }
+        }
+
+        function resetGame() {
+            clearInterval(timer);
+            alert("Oyun sona erdi! Sayfayı yenileyerek yeni bir oyun başlatabilirsiniz.");
         }
     </script>
 </body>
