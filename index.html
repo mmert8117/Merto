@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vampir Köylü - Tam İşlevsellik</title>
+    <title>Vampir Köylü - Başlat</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -73,7 +73,7 @@
         button:hover {
             background-color: #ff9800;
         }
-        .action-section, .vote-section {
+        .action-section, .vote-section, .start-section {
             margin-top: 20px;
         }
         .timer {
@@ -82,31 +82,55 @@
         }
     </style>
 </head>
-<body class="night">
-    <h1>Vampir Köylü</h1>
-    <div class="container" id="playerCards">
-        <!-- Oyuncu kartları buraya render edilecek -->
+<body>
+    <div class="start-section" id="startSection">
+        <h1>Vampir Köylü</h1>
+        <p>Oyuncu isimlerini girin ve oyunu başlatın:</p>
+        <div id="playerInputs">
+            <input type="text" placeholder="Oyuncu 1" id="player1" />
+            <input type="text" placeholder="Oyuncu 2" id="player2" />
+            <input type="text" placeholder="Oyuncu 3" id="player3" />
+            <input type="text" placeholder="Oyuncu 4" id="player4" />
+            <input type="text" placeholder="Oyuncu 5" id="player5" />
+        </div>
+        <button onclick="startGame()">Oyunu Başlat</button>
     </div>
-    <div class="action-section" id="actionSection">
-        <!-- Aksiyonlar buraya render edilecek -->
-    </div>
-    <div class="vote-section" id="voteSection" style="display: none;">
-        <!-- Gündüz oylama bölümü -->
-    </div>
-    <div class="timer" id="timer">Süre: --</div>
+    <div class="container" id="playerCards" style="display: none;"></div>
+    <div class="action-section" id="actionSection" style="display: none;"></div>
+    <div class="vote-section" id="voteSection" style="display: none;"></div>
+    <div class="timer" id="timer" style="display: none;">Süre: --</div>
     <script>
         const roles = ["Vampir", "Doktor", "Kâhin", "Masum Köylü", "Avcı"];
-        const players = [
-            { name: "Player1", role: null, status: "alive", hasActed: false },
-            { name: "Player2", role: null, status: "alive", hasActed: false },
-            { name: "Player3", role: null, status: "alive", hasActed: false },
-            { name: "Player4", role: null, status: "alive", hasActed: false },
-            { name: "Player5", role: null, status: "alive", hasActed: false }
-        ];
+        const players = [];
         let currentPlayerIndex = 0;
         let phase = "Gece";
         let timer;
         let timeLeft;
+
+        function startGame() {
+            const startSection = document.getElementById("startSection");
+            const playerInputs = document.querySelectorAll("#playerInputs input");
+            playerInputs.forEach((input, index) => {
+                if (input.value.trim() !== "") {
+                    players.push({
+                        name: input.value.trim(),
+                        role: null,
+                        status: "alive",
+                        hasActed: false,
+                    });
+                }
+            });
+            if (players.length < 5) {
+                alert("En az 5 oyuncu gerekiyor!");
+                return;
+            }
+            assignRoles();
+            renderPlayerCards();
+            startSection.style.display = "none";
+            document.getElementById("playerCards").style.display = "flex";
+            document.getElementById("timer").style.display = "block";
+            togglePhase();
+        }
 
         function assignRoles() {
             const shuffledRoles = [...roles];
@@ -163,6 +187,7 @@
 
         function renderActions() {
             const actionSection = document.getElementById("actionSection");
+            actionSection.style.display = "block";
             actionSection.innerHTML = "";
             const currentPlayer = players[currentPlayerIndex];
             if (currentPlayer.status === "dead" || currentPlayer.hasActed) {
@@ -208,14 +233,14 @@
             currentPlayerIndex++;
             if (currentPlayerIndex >= players.length) {
                 togglePhase();
-            } else {
+                            } else {
                 renderActions();
             }
         }
 
+        // Oyun başlangıcı
         assignRoles();
         renderPlayerCards();
-        togglePhase();
     </script>
 </body>
 </html>
