@@ -73,6 +73,9 @@
         button:hover {
             background-color: #ff9800;
         }
+        .start-section {
+            text-align: center;
+        }
         .action-section, .vote-section {
             margin-top: 20px;
         }
@@ -83,26 +86,66 @@
     </style>
 </head>
 <body>
-    <h1>Vampir Köylü</h1>
-    <div class="container" id="playerCards">
-        <!-- Oyuncu kartları buraya render edilecek -->
+    <!-- Oyunu başlatma ekranı -->
+    <div class="start-section" id="startSection">
+        <h1>Vampir Köylü</h1>
+        <p>Oyuncu sayısını seçin ve oyunu başlatın:</p>
+        <select id="playerCount">
+            <option value="5">5 Oyuncu</option>
+            <option value="6">6 Oyuncu</option>
+            <option value="7">7 Oyuncu</option>
+        </select>
+        <button onclick="startGame()">Oyunu Başlat</button>
     </div>
-    <div class="action-section" id="actionSection"></div>
+
+    <!-- Oyuncu kartları -->
+    <div class="container" id="playerCards" style="display: none;"></div>
+
+    <!-- Aksiyon ve oylama bölümleri -->
+    <div class="action-section" id="actionSection" style="display: none;"></div>
     <div class="vote-section" id="voteSection" style="display: none;"></div>
-    <div class="timer" id="timer">Süre: --</div>
+
+    <!-- Zamanlayıcı -->
+    <div class="timer" id="timer" style="display: none;">Süre: --</div>
+
     <script>
         const roles = ["Vampir", "Doktor", "Kâhin", "Masum Köylü", "Avcı"];
-        const players = [
-            { name: "Naber", role: "Masum Köylü", status: "alive", hasActed: false },
-            { name: "Kok u", role: "Kâhin", status: "alive", hasActed: false },
-            { name: "Deli og", role: "Vampir", status: "alive", hasActed: false },
-            { name: "Gezo", role: "Doktor", status: "alive", hasActed: false },
-            { name: "Okcu", role: "Avcı", status: "alive", hasActed: false }
-        ];
+        const players = [];
         let currentPlayerIndex = 0;
         let phase = "Gece";
         let timer;
         let timeLeft;
+
+        function startGame() {
+            const startSection = document.getElementById("startSection");
+            const playerCount = parseInt(document.getElementById("playerCount").value);
+
+            // Otomatik oyuncu isimleri ve rastgele roller
+            for (let i = 1; i <= playerCount; i++) {
+                players.push({
+                    name: `Oyuncu ${i}`,
+                    role: null,
+                    status: "alive",
+                    hasActed: false
+                });
+            }
+
+            assignRoles();
+            renderPlayerCards();
+            startSection.style.display = "none";
+            document.getElementById("playerCards").style.display = "flex";
+            document.getElementById("timer").style.display = "block";
+            togglePhase();
+        }
+
+        function assignRoles() {
+            const shuffledRoles = [...roles];
+            shuffledRoles.sort(() => Math.random() - 0.5);
+            players.forEach((player, index) => {
+                player.role = shuffledRoles[index % roles.length];
+            });
+            console.log("Atanan Roller:", players);
+        }
 
         function renderPlayerCards() {
             const playerCards = document.getElementById("playerCards");
@@ -139,6 +182,7 @@
             document.body.className = phase === "Gece" ? "night" : "day";
             players.forEach(player => (player.hasActed = false));
             currentPlayerIndex = 0;
+
             if (phase === "Gece") {
                 startTimer(players.length * 15, togglePhase);
                 renderActions();
@@ -150,8 +194,10 @@
 
         function renderActions() {
             const actionSection = document.getElementById("actionSection");
+            actionSection.style.display = "block";
             actionSection.innerHTML = "";
             const currentPlayer = players[currentPlayerIndex];
+
             if (currentPlayer.status === "dead" || currentPlayer.hasActed) {
                 nextPlayer();
                 return;
@@ -196,7 +242,16 @@
             }
         }
 
-        function renderVampirActions(player) {
+        function nextPlayer() {
+            currentPlayerIndex++;
+            if (currentPlayerIndex >= players.length) {
+                togglePhase();
+            } else {
+                renderActions();
+            }
+        }
+
+                function renderVampirActions(player) {
             const actionSection = document.getElementById("actionSection");
             const select = document.createElement("select");
             select.id = "targetPlayer";
@@ -238,14 +293,17 @@
             const button = document.createElement("button");
             button.textContent = "Koruma";
             button.onclick = () => {
-                player.hasActed = true;
-                nextPlayer();
+                const healName = document.getElementById("healPlayer").value;
+                if (healName) {
+                    player.hasActed = true;
+                    nextPlayer();
+                }
             };
             actionSection.appendChild(button);
         }
 
         function renderKahinActions(player) {
-                        const actionSection = document.getElementById("actionSection");
+            const actionSection = document.getElementById("actionSection");
             const select = document.createElement("select");
             select.id = "inspectPlayer";
             select.innerHTML = `
@@ -270,15 +328,6 @@
             actionSection.appendChild(button);
         }
 
-        function nextPlayer() {
-            currentPlayerIndex++;
-            if (currentPlayerIndex >= players.length) {
-                togglePhase();
-            } else {
-                renderActions();
-            }
-        }
-
         function checkWinCondition() {
             const alivePlayers = players.filter(player => player.status === "alive");
             const vampires = alivePlayers.filter(player => player.role === "Vampir");
@@ -298,10 +347,9 @@
             alert("Oyun bitti! Sayfayı yenileyerek yeni bir oyun başlatabilirsiniz.");
         }
 
-        // Oyunu başlat
-        renderPlayerCards();
-        togglePhase();
+        assignRoles();
     </script>
 </body>
 </html>
+            
            
